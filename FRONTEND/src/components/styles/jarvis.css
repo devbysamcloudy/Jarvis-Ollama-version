@@ -1,0 +1,108 @@
+/* Jarvis HUD container */
+.jarvis-container {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Jarvis glow effect */
+.jarvis-glow {
+  filter: drop-shadow(0 0 25px var(--blue-glow));
+}
+
+/* Center text */
+.jarvis-core {
+  text-align: center;
+  z-index: 10;
+}
+
+.jarvis-core h1 {
+  font-size: 1.5rem;
+  letter-spacing: 3px;
+  margin: 0;
+  color: var(--text-main);
+  text-transform: uppercase;
+  text-shadow: 0 0 10px var(--blue-glow);
+}
+
+.jarvis-core p {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  color: var(--text-dim);
+  margin: 4px 0 0 0;
+  font-weight: 300;
+}
+
+/* Dashboard layout */
+.dashboard {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 16px;
+  height: 100vh;
+  padding: 16px;
+  background: radial-gradient(circle at center, #0a1a2f, #020814);
+  color: var(--text-main);
+}
+
+/* Voice status section */
+.voice-status {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 320px;
+}
+
+/* Transcript section */
+.transcript {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--text-main);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  min-height: 60px;
+}
+
+/* Metrics section */
+.metrics {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metric-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.metric-value {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+/* Activity log */
+.activity-log {
+  grid-column: 1 / -1;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  min-height: 100px;
+}

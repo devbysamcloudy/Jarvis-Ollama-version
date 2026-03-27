@@ -1,0 +1,28 @@
+# Virtual environments
+venv/
+env/
+ENV/
+myenv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Secrets - NEVER commit these
+.env
+client_secret*.json
+*.token
+token.json
+
+# Logs
+*.log
+
+# IDE folders
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db

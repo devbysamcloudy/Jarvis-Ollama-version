@@ -1,0 +1,73 @@
+.heartbeat-monitor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.ecg-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 90px;
+  background: #020814;
+  border: 2px solid #38bdf8;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.25);
+}
+
+.ecg-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ecg-label {
+  position: absolute;
+  top: 6px;
+  left: 10px;
+  font-size: 11px;
+  color: #38bdf8;
+  font-family: monospace;
+  letter-spacing: 1px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.ecg-bpm {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  font-size: 13px;
+  color: #22d3ee;
+  font-family: monospace;
+  font-weight: bold;
+  pointer-events: none;
+}
+
+.ecg-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.ecg-ctrl-label {
+  font-size: 12px;
+  color: #7dd3fc;
+  min-width: 28px;
+}
+
+.ecg-slider {
+  flex: 1;
+  accent-color: #22d3ee;
+  cursor: pointer;
+}
+
+.ecg-ctrl-val {
+  font-size: 12px;
+  color: #22d3ee;
+  font-family: monospace;
+  min-width: 28px;
+  text-align: right;
+}

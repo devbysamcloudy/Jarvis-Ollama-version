@@ -1,0 +1,56 @@
+/* Outer rotating ring */
+.ring-outer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 2px solid rgba(56, 189, 248, 0.6);
+  border-radius: 50%;
+  animation: spin 12s linear infinite;
+  box-shadow: 0 0 20px #38bdf8;
+}
+
+/* Inner rotating ring */
+.ring-inner {
+  position: absolute;
+  width: 70%;
+  height: 70%;
+  border: 2px dashed rgba(34, 211, 238, 0.8);
+  border-radius: 50%;
+  animation: spinReverse 8s linear infinite;
+}
+
+/* Pulse animation for voice activity */
+.pulse {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--pulse-color), var(--pulse-accent));
+  transition: transform 0.1s linear;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+}
+
+/* Animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spinReverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+/* Canvas ring animation */
+.ring-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
