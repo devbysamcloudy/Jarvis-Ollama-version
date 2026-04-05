@@ -252,6 +252,4 @@ ollama pull gemma3:4b
 ## Developer
 
 **Samuel** — Full Stack Developer  
-GitHub: `devbysamcloudy`  
-School: Moringa School, Nairobi  
-Expected Graduation: July 2026
+GitHub: `devbysamcloudy` 
