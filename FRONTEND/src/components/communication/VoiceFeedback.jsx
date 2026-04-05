@@ -1,201 +1,200 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+import { runCommand } from "../../api";
 
-// ==========================
-// Oloma AI Config (hardcoded for frontend testing)
-// ==========================
-// These are normally in .env, but in plain frontend React, process.env is not defined.
-const OPENAI_API_KEY = "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";
-const BASE_URL = "https://api.olama.ai/v1";
-const MODEL = "gpt-4o-mini";
-const MAX_TOKENS = 2048;
-const TEMPERATURE = 0.7;
-const TOP_P = 0.9;
-const FREQUENCY_PENALTY = 0;
-const PRESENCE_PENALTY = 0;
-const TIMEOUT = 60000;
+export default function VoiceFeedback() {
+  const [transcript, setTranscript] = useState("");
+  const [response, setResponse] = useState("");
+  const [listening, setListening] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [error, setError] = useState("");
+  const [history, setHistory] = useState([]);
 
-function VoiceFeedback() {
-  // ==========================
-  // React state variables
-  // ==========================
-  const [userInformation, setUserInformation] = useState(""); // Last thing user said
-  const [listening, setListening] = useState(false);          // If speech recognition is active
-  const [error, setError] = useState("");                     // For showing errors in UI
-  const recognitionRef = useRef(null);                        // Holds SpeechRecognition instance
-  const speakingRef = useRef(false);                          // Track if JARVIS is currently speaking
+  const recognitionRef = useRef(null);
+  const speakingRef = useRef(false);
 
-  // ==========================
-  // Start voice recognition
-  // ==========================
-  function startVoice() {
-    // Prevent starting multiple recognitions simultaneously or while JARVIS is speaking
-    if (listening || speakingRef.current) return;
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Browser doesn't support voice. Use Chrome or Edge.");
-      return;
-    }
-
-    // Create new recognition instance
-    const recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.continuous = false;   // Single-shot recognition for stability
-    recognition.interimResults = false;
-    recognitionRef.current = recognition;
-
-    // Recognition started
-    recognition.onstart = () => {
-      console.log("Listening started...");
-      setError("");
-      setListening(true);
-    };
-
-    // Recognition result received
-    recognition.onresult = async (e) => {
-      const transcript = e.results[0][0].transcript;         // User speech text
-      const confidence = e.results[0][0].confidence;        // Confidence score (0-1)
-      console.log(`Transcript: "${transcript}" (confidence: ${(confidence * 100).toFixed(0)}%)`);
-
-      // Low confidence -> prompt user to speak clearly
-      if (confidence < 0.7) {
-        setError("Low confidence—please speak clearly!");
-        return;
-      }
-
-      setUserInformation(transcript); // Show what user said
-
-      try {
-        // Send transcript to Oloma AI and get response
-        const aiResponse = await askOlomaAI(transcript);
-        await makeJarvisTalk(aiResponse); // Wait for JARVIS to finish speaking
-      } catch (err) {
-        console.error("AI error:", err);
-        await makeJarvisTalk("Sorry, I couldn't process that.");
-      }
-
-      // Automatically restart recognition after JARVIS finishes
-      setTimeout(() => startVoice(), 300);
-    };
-
-    // Recognition error handling
-    recognition.onerror = (e) => {
-      console.error("Recognition error:", e.error);
-      setError(e.error === "network" ? "Mic/network issue. Try again." : `Recognition error: ${e.error}`);
-      setListening(false);
-    };
-
-    // Recognition ended
-    recognition.onend = () => {
-      console.log("Listening ended.");
-      setListening(false);
-    };
-
-    // Start recognition
-    recognition.start();
-    setListening(true);
-  }
-
-  // ==========================
-  // Stop voice recognition manually
-  // ==========================
-  function stopVoice() {
-    if (recognitionRef.current) recognitionRef.current.stop();
-    setListening(false);
-  }
-
-  // ==========================
-  // Make JARVIS speak
-  // Returns a Promise so we can wait until speaking finishes
-  // ==========================
-  function makeJarvisTalk(text) {
+  // ── SPEAK ─────────────────────────────────────────────────
+  function speak(text) {
     return new Promise((resolve) => {
-      speakingRef.current = true; // mark JARVIS as speaking
+      window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.85;  // slightly slower for clarity
-      utterance.pitch = 0.75; // deeper voice
+      utterance.rate = 0.88;
+      utterance.pitch = 0.72;
       utterance.volume = 1;
 
-      // When JARVIS finishes speaking
+      // Pick a deep voice if available
+      const voices = window.speechSynthesis.getVoices();
+      const deepVoice = voices.find(
+        (v) => v.name.includes("Google UK English Male") ||
+               v.name.includes("Microsoft David") ||
+               v.name.includes("Daniel")
+      );
+      if (deepVoice) utterance.voice = deepVoice;
+
+      speakingRef.current = true;
+      setSpeaking(true);
+
       utterance.onend = () => {
         speakingRef.current = false;
+        setSpeaking(false);
         resolve();
       };
 
-      window.speechSynthesis.cancel(); // stop any ongoing speech
+      utterance.onerror = () => {
+        speakingRef.current = false;
+        setSpeaking(false);
+        resolve();
+      };
+
       window.speechSynthesis.speak(utterance);
-      console.log("JARVIS says:", text);
     });
   }
 
-  // Call Oloma AI API
-  async function askOlomaAI(question) {
-    const controller = new AbortController();                 // for timeout
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT);
-
-    const response = await fetch(`${BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [{ role: "user", content: question }],
-        max_tokens: MAX_TOKENS,
-        temperature: TEMPERATURE,
-        top_p: TOP_P,
-        frequency_penalty: FREQUENCY_PENALTY,
-        presence_penalty: PRESENCE_PENALTY,
-      }),
-    });
-
-    clearTimeout(timeout);
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || "Sorry, no response from AI.";
-  }
-
-  // Auto-clear user input after 6 seconds
-  useEffect(() => {
-    if (userInformation) {
-      const timer = setTimeout(() => setUserInformation(""), 6000);
-      return () => clearTimeout(timer);
+  // ── ASK FLASK ─────────────────────────────────────────────
+  async function askJarvis(input) {
+    try {
+      const data = await runCommand(input);
+      return data.response || "I could not process that.";
+    } catch {
+      return "I am unable to connect to the server right now.";
     }
-  }, [userInformation]);
+  }
 
-  // Auto-clear error after 5 seconds
+  // ── START LISTENING ───────────────────────────────────────
+  function startListening() {
+    if (listening || speakingRef.current) return;
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      setError("Voice not supported. Use Chrome or Edge.");
+      return;
+    }
+
+    const recognition = new SR();
+    recognition.lang = "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognitionRef.current = recognition;
+
+    recognition.onstart = () => {
+      setListening(true);
+      setError("");
+    };
+
+    recognition.onresult = async (e) => {
+      const text = e.results[0][0].transcript;
+      const confidence = e.results[0][0].confidence;
+
+      setTranscript(text);
+
+      if (confidence < 0.6) {
+        setError("Could not hear clearly. Please speak again.");
+        setListening(false);
+        return;
+      }
+
+      const reply = await askJarvis(text);
+      setResponse(reply);
+      setHistory((prev) => [...prev, { user: text, jarvis: reply }]);
+      await speak(reply);
+
+      setTimeout(() => startListening(), 400);
+    };
+
+    recognition.onerror = (e) => {
+      if (e.error !== "no-speech") {
+        setError(`Error: ${e.error}`);
+      }
+      setListening(false);
+    };
+
+    recognition.onend = () => setListening(false);
+
+    recognition.start();
+  }
+
+  function stopListening() {
+    recognitionRef.current?.stop();
+    window.speechSynthesis.cancel();
+    setListening(false);
+    setSpeaking(false);
+    speakingRef.current = false;
+  }
+
+  function testVoice() {
+    speak("Hello! I am JARVIS, your personal AI assistant. How can I help you?");
+  }
+
   useEffect(() => {
     if (error) {
-      const timer = setTimeout(() => setError(""), 5000);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setError(""), 5000);
+      return () => clearTimeout(t);
     }
   }, [error]);
 
-  // Render UI
   return (
-    <div className="voice-container">
-      <h2>JARVIS Voice Assistant (Oloma AI-powered)</h2>
+    <div className="page-container">
+      <div className="voice-wrapper">
 
-      <div className="voice-controls">
-        <button onClick={listening ? stopVoice : startVoice}>
-          {listening ? "Stop Listening" : "Talk to JARVIS"}
-        </button>
-        <button onClick={() => makeJarvisTalk("Hello! I am JARVIS, your assistant.")}>
-          Test Voice
-        </button>
-      </div>
-
-      {userInformation && (
-        <div>
-          <p><strong>You said:</strong> {userInformation}</p>
+        {/* Status orb */}
+        <div className={`voice-orb ${listening ? "orb-listening" : speaking ? "orb-speaking" : "orb-idle"}`}>
+          <div className="orb-ring orb-ring1" />
+          <div className="orb-ring orb-ring2" />
+          <div className="orb-ring orb-ring3" />
+          <span className="orb-label">
+            {listening ? "Listening..." : speaking ? "Speaking..." : "JARVIS"}
+          </span>
         </div>
-      )}
-      {error && <div style={{ color: "orange" }}>{error}</div>}
 
-      <small>Open console for logs.</small>
+        {/* Controls */}
+        <div className="voice-controls">
+          <button
+            className={`voice-btn ${listening ? "voice-btn-stop" : "voice-btn-start"}`}
+            onClick={listening ? stopListening : startListening}
+          >
+            {listening ? "Stop" : "Talk to JARVIS"}
+          </button>
+          <button className="voice-btn voice-btn-test" onClick={testVoice}>
+            Test Voice
+          </button>
+        </div>
+
+        {/* Transcript */}
+        {transcript && (
+          <div className="voice-bubble voice-bubble-user">
+            <span className="voice-bubble-label">You</span>
+            <p>{transcript}</p>
+          </div>
+        )}
+
+        {/* Response */}
+        {response && (
+          <div className="voice-bubble voice-bubble-jarvis">
+            <span className="voice-bubble-label">JARVIS</span>
+            <p>{response}</p>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && <p className="voice-error">{error}</p>}
+
+        {/* History */}
+        {history.length > 0 && (
+          <div className="voice-history">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+              <p className="section-title" style={{ margin: 0 }}>Session history</p>
+              <button className="clear-button" style={{ fontSize: "12px", padding: "4px 10px" }} onClick={() => setHistory([])}>
+                Clear
+              </button>
+            </div>
+            {[...history].reverse().map((h, i) => (
+              <div key={i} className="voice-history-item">
+                <p className="voice-history-user">You: {h.user}</p>
+                <p className="voice-history-jarvis">JARVIS: {h.jarvis}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-
-export default VoiceFeedback;
