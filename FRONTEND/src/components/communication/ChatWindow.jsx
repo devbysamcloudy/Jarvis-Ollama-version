@@ -1,7 +1,9 @@
-//import React from 'react'
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { runCommand, saveChat } from "../../api";
+
+const BASE_URL = "http://localhost:5000/api";
+const getToken = () => localStorage.getItem("token");
 
 const COMMANDS = [
   "cpu", "battery", "disk", "processes", "help",
@@ -11,6 +13,27 @@ const COMMANDS = [
 function isJarvisCommand(input) {
   const lower = input.trim().toLowerCase();
   return COMMANDS.some((cmd) => lower === cmd || lower.startsWith(cmd));
+}
+
+async function speakElevenLabs(text) {
+  try {
+    const res = await fetch(`${BASE_URL}/voice/speak`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error("ElevenLabs failed");
+    const blob = await res.blob();
+    const audioUrl = URL.createObjectURL(blob);
+    const audio = new Audio(audioUrl);
+    audio.play();
+    audio.onended = () => URL.revokeObjectURL(audioUrl);
+  } catch (err) {
+    console.error("ElevenLabs error:", err);
+  }
 }
 
 function ChatWindow() {
@@ -50,27 +73,33 @@ function ChatWindow() {
 
     try {
       if (isJarvisCommand(userInput)) {
-        // ── Send to Flask backend ──
         const data = await runCommand(userInput);
         const response = data.response || data.error || "No response";
         addMsg("assistant", response, data.type || "command");
         await saveChat(userInput, response, "command");
+        speakElevenLabs(response);
 
       } else {
-        // ── Send to Ollama ──
         const response = await axios.post(
-          "http://localhost:11434/api/generate",
+          "http://localhost:11434/api/chat",
           {
             model: "gemma3:4b",
-            prompt: userInput,
+            messages: [
+              {
+                role: "system",
+                content: "You are JARVIS, a helpful AI assistant. Keep responses brief and friendly.",
+              },
+              { role: "user", content: userInput },
+            ],
             stream: false,
             options: { temperature: 0.7, num_predict: 500 },
           },
           { headers: { "Content-Type": "application/json" }, timeout: 45000 }
         );
-        const aiResponse = response.data.response;
+        const aiResponse = response.data.message.content;
         addMsg("assistant", aiResponse, "ai");
         await saveChat(userInput, aiResponse, "chat");
+        speakElevenLabs(aiResponse);
       }
 
     } catch (err) {
@@ -113,11 +142,11 @@ function ChatWindow() {
   const getTypeLabel = (type) => {
     const labels = {
       command: "JARVIS",
-      system:  "System",
-      file:    "Files",
-      ai:      "AI",
-      error:   "Error",
-      chat:    "JARVIS",
+      system: "System",
+      file: "Files",
+      ai: "AI",
+      error: "Error",
+      chat: "JARVIS",
     };
     return labels[type] || "JARVIS";
   };

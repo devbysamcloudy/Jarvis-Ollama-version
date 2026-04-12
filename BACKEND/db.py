@@ -30,7 +30,9 @@ def create_app():
     from routes.commands import commands_bp
     from routes.weather import weather_bp
     from routes.notifications import notifications_bp
+    from routes.voice_el import voice_bp
 
+    app.register_blueprint(voice_bp, url_prefix="/api/voice")
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(history_bp, url_prefix="/api/history")
     app.register_blueprint(prefs_bp, url_prefix="/api/preferences")
